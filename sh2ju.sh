@@ -88,7 +88,7 @@ juLog() {
   ((eVal "$cmd" | tee -a $outf) 3>&1 1>&2 2>&3 | tee $errf) 3>&1 1>&2 2>&3
   evErr=`cat $errfile`
   rm -f $errfile
-  end=`date +%s.%N`
+  end=`$date +%s.%N`
   echo "+++ exit code: $evErr"        | tee -a $outf
 
   # set the appropriate error, based in the exit code and the regex
