@@ -21,8 +21,19 @@
 ###     - Configure Jenkins to parse junit files from the generated folder
 ###
 
-asserts=00; errors=0; total=0; content=""
+asserts=00; tests=0; errors=0; total=0; content=""
 date=`which gdate || which date` 2>/dev/null
+
+if $date +%s.%N | grep N > /dev/null; then
+	getdate() {
+		$date +%s
+	}
+else
+	# Fractional seconds aren't standard, not avail on mac os x
+	getdate() {
+		$date +%s.%N
+	}
+fi
 
 # create output folder
 juDIR=`pwd`/results
@@ -47,9 +58,12 @@ juLogClean() {
 
 # Execute a command and record its results 
 juLog() {
-  
+  asserts="$(printf '%.2d' $tests)"
   # parse arguments
-  ya=""; icase=""
+  name=""
+  ya=""
+  icase=""
+  ereg=""
   while [ -z "$ya" ]; do  
     case "$1" in
   	  -name=*)   name=$asserts-`echo "$1" | sed -e 's/-name=//'`;   shift;;
@@ -82,13 +96,13 @@ juLog() {
   echo "+++ Running case: $name " | tee -a $outf
   echo "+++ working dir: "`pwd`           | tee -a $outf
   echo "+++ command: $cmd"            | tee -a $outf
-  ini=`$date +%s.%N`
+  ini="$(getdate)"
   # execute the command, temporarily swapping stderr and stdout so they can be tee'd to separate files,
   # then swapping them back again so that the streams are written correctly for the invoking process
   ((eVal "$cmd" | tee -a $outf) 3>&1 1>&2 2>&3 | tee $errf) 3>&1 1>&2 2>&3
-  evErr=`cat $errfile`
+  evErr=$(cat $errfile)
   rm -f $errfile
-  end=`$date +%s.%N`
+  end="$(getdate)"
   echo "+++ exit code: $evErr"        | tee -a $outf
 
   # set the appropriate error, based in the exit code and the regex
@@ -104,11 +118,10 @@ juLog() {
   errMsg=`cat $errf`
   rm -f $errf
   # calculate vars
-  asserts=`expr $asserts + 1`
-  asserts=`printf "%.2d" $asserts`
-  errors=`expr $errors + $err`
-  time=`echo "$end - $ini" | bc -l`
-  total=`echo "$total + $time" | bc -l`
+  tests="$(expr $tests + 1)"
+  errors="$(expr $errors + $err)"
+  thetime="$(echo \"$end - $ini\" | bc -l)"
+  total="$(echo \"$total + $thetime\" | bc -l)"
 
   # write the junit xml report
   ## failure tag
@@ -133,7 +146,7 @@ $errMsg
   "
   ## testsuite block
   cat <<EOF > "$juDIR/TEST-$suite.xml"
-  <testsuite failures="0" assertions="$assertions" name="$suite" tests="1" errors="$errors" time="$total">
+  <testsuite failures="0" assertions="$tests" name="$suite" tests="$tests" errors="$errors" time="$total">
     $content
   </testsuite>
 EOF
