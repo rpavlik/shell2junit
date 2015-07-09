@@ -100,7 +100,7 @@ juLog() {
   # execute the command, temporarily swapping stderr and stdout so they can be tee'd to separate files,
   # then swapping them back again so that the streams are written correctly for the invoking process
   ((eVal "$cmd" | tee -a $outf) 3>&1 1>&2 2>&3 | tee $errf) 3>&1 1>&2 2>&3
-  evErr=`cat $errfile`
+  evErr=$(cat $errfile)
   rm -f $errfile
   end="$(getdate)"
   echo "+++ exit code: $evErr"        | tee -a $outf
